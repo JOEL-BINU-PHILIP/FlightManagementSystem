@@ -8,23 +8,24 @@ import org.springframework.context.annotation.Configuration;
 public class RabbitMQConfig {
 
     public static final String QUEUE = "email.queue";
-    public static final String EXCHANGE = "email.exchange";
-    public static final String ROUTING_KEY = "email.routingKey";
+    public static final String EXCHANGE = "email-exchange";
+    public static final String ROUTING_KEY = "email.routing.key";
 
     @Bean
-    public Queue queue() {
-        return new Queue(QUEUE, true); // durable queue
+    public Queue emailQueue() {
+        return new Queue(QUEUE, true);
     }
 
     @Bean
-    public TopicExchange exchange() {
-        return new TopicExchange(EXCHANGE);
+    public DirectExchange emailExchange() {
+        return new DirectExchange(EXCHANGE);
     }
 
     @Bean
-    public Binding binding() {
-        return BindingBuilder.bind(queue())
-                .to(exchange())
+    public Binding emailBinding(Queue emailQueue, DirectExchange emailExchange) {
+        return BindingBuilder
+                .bind(emailQueue)
+                .to(emailExchange)
                 .with(ROUTING_KEY);
     }
 }

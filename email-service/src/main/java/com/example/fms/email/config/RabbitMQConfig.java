@@ -10,7 +10,7 @@ public class RabbitMQConfig {
     public static final String QUEUE = "email.queue";
 
     @Bean
-    public Queue queue() {
+    public Queue emailQueue() {
         return new Queue(QUEUE, true);
     }
 }

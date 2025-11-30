@@ -22,17 +22,22 @@ public class BookingServiceImpl implements BookingService {
 
     private final FlightClient flightClient;
     private final BookingRepository repo;
-    private final EmailProducer emailProducer;   // ← REQUIRED FOR MESSAGE BROKER
+    private final EmailProducer emailProducer;
     private final CircuitBreakerFactory cbFactory;
 
     @Override
     public BookingResponse bookFlight(BookingRequest req) {
 
+        log.info("Processing booking for email: {}", req.getEmail());
+
         CircuitBreaker breaker = cbFactory.create("flightCB");
 
         Boolean seatReserved = breaker.run(
                 () -> flightClient.reserveSeats(req),
-                throwable -> false
+                throwable -> {
+                    log.error("Flight reservation failed: {}", throwable.getMessage());
+                    return false;
+                }
         );
 
         if (!seatReserved) {
@@ -51,16 +56,17 @@ public class BookingServiceImpl implements BookingService {
 
         repo.save(booking);
 
-        //Send Booking confirmation email via RabbitMQ
+        // Send Booking Confirmation Email via RabbitMQ
         EmailEvent event = new EmailEvent(
                 req.getEmail(),
                 "Booking Confirmed",
-                "Your booking is confirmed.\nPNR: " + pnr,
+                "Your booking is confirmed!\nPNR: " + pnr,
                 "BOOKING_CONFIRMED",
                 pnr
         );
 
         emailProducer.sendEmail(event);
+        log.info("Email event published for booking confirmation: {}", pnr);
 
         BookingResponse res = new BookingResponse();
         res.setPnr(pnr);
@@ -74,22 +80,28 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public CancelResponse cancelBooking(String pnr) {
 
+        log.info("Cancelling booking with PNR: {}", pnr);
+
         Booking booking = repo.findByPnr(pnr);
-        if (booking == null) throw new RuntimeException("Invalid PNR");
+        if (booking == null) {
+            log.error("Invalid PNR: {}", pnr);
+            throw new RuntimeException("Invalid PNR. No booking found.");
+        }
 
         booking.setStatus("CANCELLED");
         repo.save(booking);
 
-        //Send Canncellation Email via RabbitMQ
+        // Send Cancellation Email via RabbitMQ
         EmailEvent event = new EmailEvent(
                 booking.getEmail(),
-                "Booking Cancelled",
+                "Booking Cancelled ",
                 "Your booking has been cancelled.\nPNR: " + pnr,
                 "BOOKING_CANCELLED",
                 pnr
         );
 
         emailProducer.sendEmail(event);
+        log.info("Email event published for cancellation: {}", pnr);
 
         CancelResponse res = new CancelResponse();
         res.setPnr(pnr);
@@ -99,11 +111,13 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public Object getTicket(String pnr) {
+        log.info("Fetching ticket for PNR: {}", pnr);
         return repo.findByPnr(pnr);
     }
 
     @Override
     public Object getHistory(String email) {
+        log.info("Fetching booking history for email: {}", email);
         return repo.findByEmail(email);
     }
 }

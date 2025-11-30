@@ -1,30 +1,30 @@
 package com.example.fms.email.messaging;
 
 import com.example.fms.common.dto.EmailEvent;
-import lombok.RequiredArgsConstructor;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.stereotype.Component;
+import com.example.fms.email.service.EmailSenderService;
 
-import static com.example.fms.email.config.RabbitMQConfig.QUEUE;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class EmailListener {
 
-    private final JavaMailSender mailSender;
+    private final EmailSenderService emailSenderService;
 
-    @RabbitListener(queues = QUEUE)
-    public void handleEmail(EmailEvent event) {
+    @RabbitListener(queues = "email.queue")
+    public void handleEmailEvent(EmailEvent event) {
 
-        SimpleMailMessage msg = new SimpleMailMessage();
-        msg.setTo(event.to());
-        msg.setSubject(event.subject());
-        msg.setText(event.body());
+        log.info("Received EmailEvent from RabbitMQ: {}", event);
 
-        mailSender.send(msg);
-
-        System.out.println("EMAIL SENT TO: " + event.to());
+        try {
+            emailSenderService.sendEmail(event);
+        } catch (Exception ex) {
+            log.error("Error while processing email event: {}", ex.getMessage());
+        }
     }
 }
