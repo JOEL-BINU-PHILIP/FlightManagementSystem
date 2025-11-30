@@ -6,6 +6,7 @@ import com.example.fms.booking.model.Booking;
 import com.example.fms.booking.repository.BookingRepository;
 import com.example.fms.booking.util.PnrGenerator;
 import com.example.fms.booking.messaging.EmailProducer;
+import com.example.fms.common.dto.EmailEvent;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +22,7 @@ public class BookingServiceImpl implements BookingService {
 
     private final FlightClient flightClient;
     private final BookingRepository repo;
-    private final EmailProducer emailProducer;
+    private final EmailProducer emailProducer;   // ← REQUIRED FOR MESSAGE BROKER
     private final CircuitBreakerFactory cbFactory;
 
     @Override
@@ -50,7 +51,16 @@ public class BookingServiceImpl implements BookingService {
 
         repo.save(booking);
 
-        emailProducer.sendEmailMessage(req.getEmail(), "Booking confirmed. PNR: " + pnr);
+        //Send Booking confirmation email via RabbitMQ
+        EmailEvent event = new EmailEvent(
+                req.getEmail(),
+                "Booking Confirmed",
+                "Your booking is confirmed.\nPNR: " + pnr,
+                "BOOKING_CONFIRMED",
+                pnr
+        );
+
+        emailProducer.sendEmail(event);
 
         BookingResponse res = new BookingResponse();
         res.setPnr(pnr);
@@ -70,7 +80,16 @@ public class BookingServiceImpl implements BookingService {
         booking.setStatus("CANCELLED");
         repo.save(booking);
 
-        emailProducer.sendEmailMessage(booking.getEmail(), "Booking cancelled: " + pnr);
+        //Send Canncellation Email via RabbitMQ
+        EmailEvent event = new EmailEvent(
+                booking.getEmail(),
+                "Booking Cancelled",
+                "Your booking has been cancelled.\nPNR: " + pnr,
+                "BOOKING_CANCELLED",
+                pnr
+        );
+
+        emailProducer.sendEmail(event);
 
         CancelResponse res = new CancelResponse();
         res.setPnr(pnr);
