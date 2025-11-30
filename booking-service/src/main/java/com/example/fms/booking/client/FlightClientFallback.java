@@ -1,7 +1,7 @@
 package com.example.fms.booking.client;
 
-import com.example.fms.booking.dto.FlightDetailsDto;
 import com.example.fms.booking.dto.BookingRequest;
+import com.example.fms.booking.dto.FlightDetailsDto;
 import org.springframework.stereotype.Component;
 
 @Component

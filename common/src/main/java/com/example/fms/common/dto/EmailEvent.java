@@ -6,4 +6,5 @@ public record EmailEvent(
         String body,
         String eventType,
         String pnr
-) {}
+) {
+}

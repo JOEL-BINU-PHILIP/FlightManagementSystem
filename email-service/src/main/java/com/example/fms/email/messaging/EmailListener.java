@@ -2,10 +2,8 @@ package com.example.fms.email.messaging;
 
 import com.example.fms.common.dto.EmailEvent;
 import com.example.fms.email.service.EmailSenderService;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 

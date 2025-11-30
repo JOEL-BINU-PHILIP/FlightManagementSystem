@@ -11,4 +11,5 @@ public record BookingDto(
         double totalAmount,
         Instant bookingTime,
         String status
-) {}
+) {
+}

@@ -9,4 +9,5 @@ public record FlightDto(
         int totalSeats,
         int availableSeats,
         double price
-) {}
+) {
+}

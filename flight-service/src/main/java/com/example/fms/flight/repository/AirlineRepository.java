@@ -3,6 +3,7 @@ package com.example.fms.flight.repository;
 import com.example.fms.flight.model.Airline;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
+
 import java.time.LocalDate;
 import java.util.List;
 

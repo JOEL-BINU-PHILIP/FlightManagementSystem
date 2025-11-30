@@ -1,19 +1,19 @@
 package com.example.fms.booking.service;
 
 import com.example.fms.booking.client.FlightClient;
-import com.example.fms.booking.dto.*;
+import com.example.fms.booking.dto.BookingRequest;
+import com.example.fms.booking.dto.BookingResponse;
+import com.example.fms.booking.dto.CancelResponse;
+import com.example.fms.booking.messaging.EmailProducer;
 import com.example.fms.booking.model.Booking;
 import com.example.fms.booking.repository.BookingRepository;
 import com.example.fms.booking.util.PnrGenerator;
-import com.example.fms.booking.messaging.EmailProducer;
 import com.example.fms.common.dto.EmailEvent;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
-import org.springframework.stereotype.Service;
 import org.springframework.cloud.client.circuitbreaker.CircuitBreaker;
 import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
+import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
