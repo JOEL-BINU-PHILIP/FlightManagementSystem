@@ -5,7 +5,6 @@ import com.example.fms.flight.dto.AddInventoryRequest;
 import com.example.fms.flight.dto.FlightInfoDto;
 import com.example.fms.flight.dto.SearchRequest;
 import com.example.fms.flight.model.Airline;
-import com.example.fms.flight.model.EmbeddedFlight;
 import com.example.fms.flight.repository.AirlineRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
