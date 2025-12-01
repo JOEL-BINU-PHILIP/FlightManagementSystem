@@ -22,46 +22,63 @@ public class FlightServiceImpl implements FlightService {
     private final AirlineRepository airlineRepository;
     private final FlightRepository flightRepository;
 
-    // Shared formatter for converting String → LocalDateTime
     private static final DateTimeFormatter DATE_TIME_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
+
+    // ADD AIRLINE (with duplicate validation)
     @Override
     public void addAirline(AddAirlineRequest req) {
+
+        // 🔥 Prevent duplicate airline names
+        if (airlineRepository.existsByNameIgnoreCase(req.getName())) {
+            throw new RuntimeException("Airline already exists: " + req.getName());
+        }
+
         Airline airline = new Airline();
         airline.setName(req.getName());
         airline.setLogoUrl(req.getLogoUrl());
+
         airlineRepository.save(airline);
     }
 
+
+    // ADD INVENTORY (validate duplicate flight number)
     @Override
     public void addInventory(AddInventoryRequest req) {
 
+        // Validate airline ID exists
         airlineRepository.findById(req.getAirlineId())
                 .orElseThrow(() -> new RuntimeException("Airline not found"));
 
+        // Prevent duplicate flight numbers
+        if (flightRepository.existsByFlightNumberIgnoreCase(req.getFlightNumber())) {
+            throw new RuntimeException("Flight number already exists: " + req.getFlightNumber());
+        }
         Flight flight = new Flight();
         flight.setAirlineId(req.getAirlineId());
         flight.setFlightNumber(req.getFlightNumber());
         flight.setFromPlace(req.getFromPlace());
         flight.setToPlace(req.getToPlace());
-
-        // IMPORTANT — convert String → LocalDateTime
         flight.setDepartureTime(LocalDateTime.parse(req.getDepartureTime(), DATE_TIME_FORMATTER));
         flight.setArrivalTime(LocalDateTime.parse(req.getArrivalTime(), DATE_TIME_FORMATTER));
-
         flight.setPrice(req.getPrice());
         flight.setTotalSeats(req.getTotalSeats());
-        flight.setAvailableSeats(req.getTotalSeats()); // all seats available
+        flight.setAvailableSeats(req.getTotalSeats());
 
         flightRepository.save(flight);
     }
 
+    // GET FLIGHT DETAILS (include airline name)
     @Override
     public FlightDTO getFlightDetails(String flightId) {
 
         Flight flight = flightRepository.findById(flightId)
                 .orElseThrow(() -> new RuntimeException("Flight not found"));
+
+        Airline airline = airlineRepository
+                .findById(flight.getAirlineId())
+                .orElse(null);
 
         FlightDTO dto = new FlightDTO();
         dto.setId(flight.getId());
@@ -72,6 +89,8 @@ public class FlightServiceImpl implements FlightService {
         dto.setArrivalTime(flight.getArrivalTime().toString());
         dto.setPrice(flight.getPrice());
         dto.setAvailableSeats(flight.getAvailableSeats());
+        
+        dto.setAirlineName(airline != null ? airline.getName() : "Unknown");
 
         return dto;
     }
@@ -113,6 +132,7 @@ public class FlightServiceImpl implements FlightService {
                 .flights(flightInfoList)
                 .build();
     }
+    
     @Override
     public boolean reserveSeats(String flightId, int seats) {
 
@@ -128,6 +148,4 @@ public class FlightServiceImpl implements FlightService {
 
         return true;
     }
-
 }
-
