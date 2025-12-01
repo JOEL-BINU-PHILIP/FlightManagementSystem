@@ -1,19 +1,24 @@
 package com.example.fms.booking.service;
 
 import com.example.fms.booking.client.FlightClient;
-import com.example.fms.booking.dto.BookingRequest;
-import com.example.fms.booking.dto.BookingResponse;
-import com.example.fms.booking.dto.CancelResponse;
-import com.example.fms.booking.messaging.EmailProducer;
+import com.example.fms.booking.dto.*;
 import com.example.fms.booking.model.Booking;
+import com.example.fms.booking.model.Passenger;
 import com.example.fms.booking.repository.BookingRepository;
+import com.example.fms.booking.repository.PassengerRepository;
 import com.example.fms.booking.util.PnrGenerator;
+import com.example.fms.booking.messaging.EmailProducer;
 import com.example.fms.common.dto.EmailEvent;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.stereotype.Service;
 import org.springframework.cloud.client.circuitbreaker.CircuitBreaker;
 import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
-import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -21,23 +26,19 @@ import org.springframework.stereotype.Service;
 public class BookingServiceImpl implements BookingService {
 
     private final FlightClient flightClient;
-    private final BookingRepository repo;
+    private final BookingRepository bookingRepo;
+    private final PassengerRepository passengerRepo;
     private final EmailProducer emailProducer;
     private final CircuitBreakerFactory cbFactory;
 
     @Override
     public BookingResponse bookFlight(BookingRequest req) {
 
-        log.info("Processing booking for email: {}", req.getEmail());
-
         CircuitBreaker breaker = cbFactory.create("flightCB");
 
         Boolean seatReserved = breaker.run(
                 () -> flightClient.reserveSeats(req),
-                throwable -> {
-                    log.error("Flight reservation failed: {}", throwable.getMessage());
-                    return false;
-                }
+                throwable -> false
         );
 
         if (!seatReserved) {
@@ -46,32 +47,43 @@ public class BookingServiceImpl implements BookingService {
 
         String pnr = PnrGenerator.generate();
 
+        // Save Booking
         Booking booking = new Booking();
         booking.setPnr(pnr);
-        booking.setFlightNo(req.getFlightNo());
-        booking.setAirlineId(req.getAirlineId());
+        booking.setFlightId(req.getFlightId());
         booking.setEmail(req.getEmail());
-        booking.setSeats(req.getSeats());
-        booking.setStatus("BOOKED");
+        booking.setSeatsBooked(req.getPassengers().size());
+        booking.setBookingTime(LocalDateTime.now());
+        booking.setCanceled(false);
 
-        repo.save(booking);
+        bookingRepo.save(booking);
 
-        // Send Booking Confirmation Email via RabbitMQ
+        // Save Passengers
+        for (PassengerDTO p : req.getPassengers()) {
+            Passenger px = new Passenger();
+            px.setName(p.getName());
+            px.setGender(p.getGender());
+            px.setAge(p.getAge());
+            px.setSeatNumber(p.getSeatNumber());
+            px.setMeal(p.getMeal());
+            px.setBookingId(booking.getId());
+            passengerRepo.save(px);
+        }
+
+        // Send Email Event via RabbitMQ
         EmailEvent event = new EmailEvent(
                 req.getEmail(),
                 "Booking Confirmed",
-                "Your booking is confirmed!\nPNR: " + pnr,
+                "Your flight booking is confirmed.\nPNR: " + pnr,
                 "BOOKING_CONFIRMED",
                 pnr
         );
-
         emailProducer.sendEmail(event);
-        log.info("Email event published for booking confirmation: {}", pnr);
 
         BookingResponse res = new BookingResponse();
         res.setPnr(pnr);
         res.setEmail(req.getEmail());
-        res.setFlightNo(req.getFlightNo());
+        res.setFlightId(req.getFlightId());
         res.setStatus("BOOKED");
 
         return res;
@@ -80,44 +92,38 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public CancelResponse cancelBooking(String pnr) {
 
-        log.info("Cancelling booking with PNR: {}", pnr);
+        Booking booking = bookingRepo.findByPnr(pnr);
+        if (booking == null) throw new RuntimeException("Invalid PNR");
 
-        Booking booking = repo.findByPnr(pnr);
-        if (booking == null) {
-            log.error("Invalid PNR: {}", pnr);
-            throw new RuntimeException("Invalid PNR. No booking found.");
-        }
+        booking.setCanceled(true);
+        booking.setCanceledAt(LocalDateTime.now());
+        bookingRepo.save(booking);
 
-        booking.setStatus("CANCELLED");
-        repo.save(booking);
-
-        // Send Cancellation Email via RabbitMQ
+        // Notify via Email (RabbitMQ)
         EmailEvent event = new EmailEvent(
                 booking.getEmail(),
-                "Booking Cancelled ",
+                "Booking Cancelled",
                 "Your booking has been cancelled.\nPNR: " + pnr,
                 "BOOKING_CANCELLED",
                 pnr
         );
 
         emailProducer.sendEmail(event);
-        log.info("Email event published for cancellation: {}", pnr);
 
         CancelResponse res = new CancelResponse();
         res.setPnr(pnr);
         res.setStatus("CANCELLED");
+
         return res;
     }
 
     @Override
     public Object getTicket(String pnr) {
-        log.info("Fetching ticket for PNR: {}", pnr);
-        return repo.findByPnr(pnr);
+        return bookingRepo.findByPnr(pnr);
     }
 
     @Override
     public Object getHistory(String email) {
-        log.info("Fetching booking history for email: {}", email);
-        return repo.findByEmail(email);
+        return bookingRepo.findByEmail(email);
     }
 }
