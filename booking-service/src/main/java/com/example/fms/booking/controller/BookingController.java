@@ -23,19 +23,19 @@ public class BookingController {
 
     // USER → Cancel using PNR
     @DeleteMapping("/cancel/{pnr}")
-    public ResponseEntity<CancelResponse> cancelBooking(@PathVariable String pnr) {
+    public ResponseEntity<CancelResponse> cancelBooking(@PathVariable("pnr") String pnr) {
         return ResponseEntity.ok(bookingService.cancelBooking(pnr));
     }
 
     // USER → Get ticket by PNR
     @GetMapping("/ticket/{pnr}")
-    public ResponseEntity<?> getTicket(@PathVariable String pnr) {
+    public ResponseEntity<?> getTicket(@PathVariable("pnr") String pnr) {
         return ResponseEntity.ok(bookingService.getTicket(pnr));
     }
 
     // USER → View Booking History by Email
     @GetMapping("/history/{email}")
-    public ResponseEntity<?> getHistory(@PathVariable String email) {
+    public ResponseEntity<?> getHistory(@PathVariable("email") String email) {
         return ResponseEntity.ok(bookingService.getHistory(email));
     }
 }
