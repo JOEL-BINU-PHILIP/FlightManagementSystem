@@ -1,11 +1,9 @@
 package com.example.fms.booking.client;
 
-import com.example.fms.booking.dto.BookingRequest;
+import com.example.fms.booking.dto.FlightInfoDTO;
+import com.example.fms.booking.dto.ReserveSeatRequest;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.*;
 
 @FeignClient(
         name = "flight-service",
@@ -14,9 +12,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 )
 public interface FlightClient {
 
-    @PostMapping("/reserve")
-    Boolean reserveSeats(@RequestBody BookingRequest req);
+    // Reserve seats in flight-service
+    @PostMapping("/reserve/{flightId}")
+    Boolean reserveSeats(
+            @PathVariable("flightId") String flightId,
+            @RequestBody ReserveSeatRequest req
+    );
 
-    @GetMapping("/details/{flightNo}")
-    FlightDetailsDto getFlightDetails(@PathVariable("flightNo") String flightNo);
+    // Get flight details from flight-service
+    @GetMapping("/details/{flightId}")
+    FlightInfoDTO getFlightDetails(@PathVariable("flightId") String flightId);
 }

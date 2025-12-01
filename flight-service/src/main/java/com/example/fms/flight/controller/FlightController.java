@@ -8,8 +8,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/flight")
@@ -18,22 +16,25 @@ public class FlightController {
     private final FlightService flightService;
 
     // ADMIN → Add Airline
-    @PostMapping("/addAirline")
+    @PostMapping("/airline")
     public ResponseEntity<String> addAirline(@RequestBody AddAirlineRequest req) {
         flightService.addAirline(req);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body("Airline added successfully");
+                .body("Airline created successfully");
     }
 
+    // ADMIN → Add Inventory
+    @PostMapping("/airline/{airlineId}/inventory")
+    public ResponseEntity<String> addInventory(
+            @PathVariable("airlineId") String airlineId,
+            @RequestBody AddInventoryRequest req) {
 
-    // ADMIN → Add Flight Inventory
-    @PostMapping("/airline/inventory/add")
-    public ResponseEntity<String> addInventory(@RequestBody AddInventoryRequest req) {
+        req.setAirlineId(airlineId);
         flightService.addInventory(req);
+
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body("Flight inventory added successfully");
     }
-
 
     // USER → Search Flights
     @PostMapping("/search")
@@ -41,10 +42,19 @@ public class FlightController {
         return ResponseEntity.ok(flightService.searchFlights(req));
     }
 
-
     // USER → Get Flight Details
-    @GetMapping("/{flightId}")
-    public ResponseEntity<FlightDTO> getFlightById(@PathVariable String flightId) {
-        return ResponseEntity.ok(flightService.getFlightById(flightId));
+    @GetMapping("/details/{flightId}")
+    public ResponseEntity<FlightDTO> getFlightDetails(@PathVariable("flightId") String flightId) {
+        return ResponseEntity.ok(flightService.getFlightDetails(flightId));
+    }
+
+    // USER → Reserve Seats (Used By Booking Service)
+    @PostMapping("/reserve/{flightId}")
+    public ResponseEntity<Boolean> reserveSeats(
+            @PathVariable("flightId") String flightId,
+            @RequestBody ReserveSeatRequest req
+    ) {
+        boolean result = flightService.reserveSeats(flightId, req.getSeats());
+        return ResponseEntity.ok(result);
     }
 }

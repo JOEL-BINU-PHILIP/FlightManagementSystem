@@ -36,8 +36,14 @@ public class BookingServiceImpl implements BookingService {
 
         CircuitBreaker breaker = cbFactory.create("flightCB");
 
+        // Prepare seat reservation request
+        ReserveSeatRequest seatReq = new ReserveSeatRequest(
+                req.getFlightId(),
+                req.getPassengers().size()
+        );
+
         Boolean seatReserved = breaker.run(
-                () -> flightClient.reserveSeats(req),
+                () -> flightClient.reserveSeats(req.getFlightId(), seatReq),
                 throwable -> false
         );
 
@@ -47,7 +53,7 @@ public class BookingServiceImpl implements BookingService {
 
         String pnr = PnrGenerator.generate();
 
-        // Save Booking
+        // Save booking
         Booking booking = new Booking();
         booking.setPnr(pnr);
         booking.setFlightId(req.getFlightId());
@@ -58,7 +64,7 @@ public class BookingServiceImpl implements BookingService {
 
         bookingRepo.save(booking);
 
-        // Save Passengers
+        // Save passengers
         for (PassengerDTO p : req.getPassengers()) {
             Passenger px = new Passenger();
             px.setName(p.getName());
@@ -70,7 +76,7 @@ public class BookingServiceImpl implements BookingService {
             passengerRepo.save(px);
         }
 
-        // Send Email Event via RabbitMQ
+        // Send RabbitMQ email event
         EmailEvent event = new EmailEvent(
                 req.getEmail(),
                 "Booking Confirmed",
@@ -99,7 +105,7 @@ public class BookingServiceImpl implements BookingService {
         booking.setCanceledAt(LocalDateTime.now());
         bookingRepo.save(booking);
 
-        // Notify via Email (RabbitMQ)
+        // Send cancellation email event
         EmailEvent event = new EmailEvent(
                 booking.getEmail(),
                 "Booking Cancelled",
@@ -118,8 +124,42 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public Object getTicket(String pnr) {
-        return bookingRepo.findByPnr(pnr);
+    public TicketResponse getTicket(String pnr) {
+
+        Booking booking = bookingRepo.findByPnr(pnr);
+        if (booking == null) {
+            throw new RuntimeException("Invalid PNR");
+        }
+
+        BookingDTO bookingDTO = BookingDTO.builder()
+                .pnr(booking.getPnr())
+                .flightId(booking.getFlightId())
+                .email(booking.getEmail())
+                .seatsBooked(booking.getSeatsBooked())
+                .bookingTime(String.valueOf(booking.getBookingTime()))
+                .cancelled(booking.isCanceled())
+                .cancelledAt(booking.getCanceledAt() != null ? booking.getCanceledAt().toString() : null)
+                .build();
+
+        List<Passenger> pxList = passengerRepo.findByBookingId(booking.getId());
+
+        List<PassengerDTO> passengerDTOs = pxList.stream().map(p ->
+                PassengerDTO.builder()
+                        .name(p.getName())
+                        .gender(p.getGender())
+                        .age(p.getAge())
+                        .seatNumber(p.getSeatNumber())
+                        .meal(p.getMeal())
+                        .build()
+        ).toList();
+
+        FlightInfoDTO flightInfo = flightClient.getFlightDetails(booking.getFlightId());
+
+        return TicketResponse.builder()
+                .booking(bookingDTO)
+                .passengers(passengerDTOs)
+                .flight(flightInfo)
+                .build();
     }
 
     @Override

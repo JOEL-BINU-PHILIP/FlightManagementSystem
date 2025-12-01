@@ -2,8 +2,6 @@ package com.example.fms.flight.dto;
 
 import lombok.Data;
 
-import java.time.LocalDateTime;
-
 @Data
 public class AddInventoryRequest {
 
@@ -13,8 +11,8 @@ public class AddInventoryRequest {
     private String fromPlace;
     private String toPlace;
 
-    private LocalDateTime departureTime;
-    private LocalDateTime arrivalTime;
+    private String departureTime;
+    private String arrivalTime;
 
     private double price;
     private int totalSeats;

@@ -8,5 +8,5 @@ import java.util.List;
 @Data
 @Builder
 public class SearchFlightResponse {
-    private List<FlightInfoDto> flights;
+    private List<FlightInfoDTO> flights;
 }

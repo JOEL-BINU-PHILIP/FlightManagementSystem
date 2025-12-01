@@ -10,5 +10,7 @@ public interface FlightService {
 
     SearchFlightResponse searchFlights(SearchFlightRequest request);
 
-    FlightDTO getFlightById(String flightId);
+    boolean reserveSeats(String flightId, int seats);
+
+    FlightDTO getFlightDetails(String flightId);
 }
