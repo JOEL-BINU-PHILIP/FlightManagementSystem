@@ -5,7 +5,7 @@ import lombok.Data;
 @Data
 public class BookingResponse {
     private String pnr;
-    private String flightNo;
     private String email;
+    private String flightId;
     private String status;
 }

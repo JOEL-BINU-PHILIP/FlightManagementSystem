@@ -1,17 +1,18 @@
 package com.example.fms.flight.dto;
 
+import lombok.Builder;
 import lombok.Data;
 
-import java.time.LocalDate;
-
 @Data
+@Builder
 public class FlightInfoDto {
-    private String airlineId;
+    private String id;
+    private String flightNumber;
     private String airlineName;
-    private String flightNo;
-    private String from;
-    private String to;
-    private LocalDate date;
+    private String fromPlace;
+    private String toPlace;
+    private String departureTime;
+    private String arrivalTime;
     private double price;
     private int availableSeats;
 }

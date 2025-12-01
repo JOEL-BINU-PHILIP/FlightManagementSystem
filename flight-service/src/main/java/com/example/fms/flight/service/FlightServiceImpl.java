@@ -1,84 +1,98 @@
 package com.example.fms.flight.service;
 
-import com.example.fms.flight.dto.AddAirlineRequest;
-import com.example.fms.flight.dto.AddInventoryRequest;
-import com.example.fms.flight.dto.FlightInfoDto;
-import com.example.fms.flight.dto.SearchRequest;
+import com.example.fms.flight.dto.*;
 import com.example.fms.flight.model.Airline;
+import com.example.fms.flight.model.Flight;
 import com.example.fms.flight.repository.AirlineRepository;
+import com.example.fms.flight.repository.FlightRepository;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor   // Lombok creates constructor for final fields
-@Slf4j                      // Lombok logging
+@RequiredArgsConstructor
 public class FlightServiceImpl implements FlightService {
 
     private final AirlineRepository airlineRepository;
+    private final FlightRepository flightRepository;
 
     @Override
-    public Airline addAirline(AddAirlineRequest request) {
+    public void addAirline(AddAirlineRequest req) {
         Airline airline = new Airline();
-        airline.setAirlineName(request.getAirlineName());
-        airline.setDescription(request.getDescription());
-
-        airline = airlineRepository.save(airline);
-
-        log.info("Airline added: {}", airline.getId());
-        return airline;
+        airline.setName(req.getName());
+        airline.setLogoUrl(req.getLogoUrl());
+        airlineRepository.save(airline);
     }
 
     @Override
-    public Airline addInventory(AddInventoryRequest request) {
-        Airline airline = airlineRepository.findById(request.getAirlineId())
+    public void addInventory(AddInventoryRequest req) {
+
+        Airline airline = airlineRepository.findById(req.getAirlineId())
                 .orElseThrow(() -> new RuntimeException("Airline not found"));
 
-        EmbeddedFlight flight = new EmbeddedFlight(
-                request.getFlightNo(),
-                request.getFrom(),
-                request.getTo(),
-                request.getDate(),
-                request.getPrice(),
-                request.getSeats(),
-                request.getSeats()
-        );
+        Flight flight = new Flight();
+        flight.setAirlineId(req.getAirlineId());
+        flight.setFlightNumber(req.getFlightNumber());
+        flight.setFromPlace(req.getFromPlace());
+        flight.setToPlace(req.getToPlace());
+        flight.setDepartureTime(req.getDepartureTime());
+        flight.setArrivalTime(req.getArrivalTime());
+        flight.setPrice(req.getPrice());
+        flight.setTotalSeats(req.getTotalSeats());
+        flight.setAvailableSeats(req.getTotalSeats());
 
-        airline.getFlights().add(flight);
-        airline = airlineRepository.save(airline);
+        flightRepository.save(flight);
+    }
+    @Override
+    public FlightDTO getFlightById(String flightId) {
+        var flight = flightRepository.findById(flightId)
+                .orElseThrow(() -> new RuntimeException("Flight not found"));
 
-        log.info("Added inventory to airline {}", airline.getId());
-        return airline;
+        FlightDTO dto = new FlightDTO();
+        dto.setId(flight.getId());
+        dto.setFlightNumber(flight.getFlightNumber());
+        dto.setFromPlace(flight.getFromPlace());
+        dto.setToPlace(flight.getToPlace());
+        dto.setDepartureTime(flight.getDepartureTime());
+        dto.setArrivalTime(flight.getArrivalTime());
+        dto.setPrice(flight.getPrice());
+        dto.setAvailableSeats(flight.getAvailableSeats());
+
+        return dto;
     }
 
     @Override
-    public List<FlightInfoDto> searchFlights(SearchRequest request) {
-        List<Airline> airlines = airlineRepository.findAll();
-        List<FlightInfoDto> results = new ArrayList<>();
+    public SearchFlightResponse searchFlights(SearchFlightRequest req) {
 
-        airlines.forEach(airline -> airline.getFlights().forEach(flight -> {
-            if (flight.getFrom().equalsIgnoreCase(request.getFrom()) &&
-                    flight.getTo().equalsIgnoreCase(request.getTo()) &&
-                    flight.getDate().equals(request.getDate())) {
+        LocalDate date = LocalDate.parse(req.getDate());
 
-                FlightInfoDto dto = new FlightInfoDto();
-                dto.setAirlineId(airline.getId());
-                dto.setAirlineName(airline.getAirlineName());
-                dto.setFlightNo(flight.getFlightNo());
-                dto.setFrom(flight.getFrom());
-                dto.setTo(flight.getTo());
-                dto.setDate(flight.getDate());
-                dto.setPrice(flight.getPrice());
-                dto.setAvailableSeats(flight.getAvailable());
+        LocalDateTime start = date.atStartOfDay();
+        LocalDateTime end   = date.atTime(LocalTime.MAX);
 
-                results.add(dto);
-            }
-        }));
+        List<Flight> flights = flightRepository
+                .findByFromPlaceAndToPlaceAndDepartureTimeBetween(
+                        req.getFromPlace(), req.getToPlace(), start, end
+                );
 
-        log.info("Search results: {} flights found", results.size());
-        return results;
+        List<FlightInfoDto> dtos = flights.stream().map(f -> {
+            Airline airline = airlineRepository.findById(f.getAirlineId()).orElse(null);
+            return FlightInfoDto.builder()
+                    .id(f.getId())
+                    .flightNumber(f.getFlightNumber())
+                    .fromPlace(f.getFromPlace())
+                    .toPlace(f.getToPlace())
+                    .departureTime(f.getDepartureTime().toString())
+                    .arrivalTime(f.getArrivalTime().toString())
+                    .availableSeats(f.getAvailableSeats())
+                    .price(f.getPrice())
+                    .airlineName(airline != null ? airline.getName() : "Unknown")
+                    .build();
+        }).toList();
+
+        return SearchFlightResponse.builder().flights(dtos).build();
     }
 }
