@@ -18,7 +18,7 @@ public class BookingController {
     // USER → Book a flight
     @PostMapping("/book")
     public ResponseEntity<BookingResponse> bookFlight(@RequestBody BookingRequest req) {
-        return ResponseEntity.ok(bookingService.bookFlight(req));
+        return ResponseEntity.status(201).body(bookingService.bookFlight(req));
     }
 
     // USER → Cancel using PNR

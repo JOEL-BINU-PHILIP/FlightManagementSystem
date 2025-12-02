@@ -54,7 +54,7 @@ class BookingControllerTest {
         mockMvc.perform(post("/api/book/book")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.pnr").value("PNR123"))
                 .andExpect(jsonPath("$.status").value("BOOKED"));
 
