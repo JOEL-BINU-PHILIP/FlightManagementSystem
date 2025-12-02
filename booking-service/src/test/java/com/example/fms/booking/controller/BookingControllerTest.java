@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -17,6 +18,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(BookingController.class)
+@TestPropertySource(properties = {
+        "spring.cloud.config.enabled=false",
+        "spring.cloud.config.fail-fast=false",
+        "spring.config.import=",
+        "eureka.client.enabled=false"
+})
 class BookingControllerTest {
 
     @Autowired
@@ -83,7 +90,7 @@ class BookingControllerTest {
                 .passengers(List.of(
                         new PassengerDTO("Joel", "M", 22, "12A", "VEG")
                 ))
-                .flight(new FlightInfoDTO())
+                .flight(new com.example.fms.booking.dto.FlightInfoDTO())
                 .build();
 
         when(bookingService.getTicket("PNR123"))

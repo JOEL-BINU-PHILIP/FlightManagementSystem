@@ -17,6 +17,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.TestPropertySource;
 
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -27,6 +28,10 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+/**
+ * Web-slice test. TestPropertySource disables Config / Eureka so
+ * the test won't attempt to reach external services during bootstrap.
+ */
 @WebMvcTest(controllers = FlightController.class)
 @AutoConfigureMockMvc(addFilters = false)
 @EnableAutoConfiguration(exclude = {
@@ -35,6 +40,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         SecurityAutoConfiguration.class
 })
 @Import(TestConfig.class)
+@TestPropertySource(properties = {
+        "spring.cloud.config.enabled=false",
+        "spring.cloud.config.fail-fast=false",
+        "spring.config.import=",
+        "eureka.client.enabled=false"
+})
 class FlightControllerTest {
 
     @Autowired
