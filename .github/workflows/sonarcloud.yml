@@ -47,18 +47,5 @@ jobs:
             -Dsonar.host.url=https://sonarcloud.io
             -Dsonar.java.binaries=**/target/classes
             -Dsonar.coverage.jacoco.xmlReportPaths=**/target/site/jacoco/jacoco.xml
-            -Dsonar.inclusions=\
-              flight-service/src/main/java/**/service/**,\
-              flight-service/src/main/java/**/controller/**,\
-              booking-service/src/main/java/**/service/**,\
-              booking-service/src/main/java/**/controller/**
-            -Dsonar.exclusions=\
-              **/dto/**,\
-              **/model/**,\
-              **/entity/**,\
-              **/repository/**,\
-              **/exception/**,\
-              **/config/**,\
-              **/client/**,\
-              **/messaging/**,\
-              src/test/**
+            -Dsonar.inclusions=flight-service/src/main/java/**/service/**,flight-service/src/main/java/**/controller/**,booking-service/src/main/java/**/service/**,booking-service/src/main/java/**/controller/**
+            -Dsonar.exclusions=**/dto/**,**/model/**,**/entity/**,**/repository/**,**/exception/**,**/config/**,**/client/**,**/messaging/**,src/test/**
